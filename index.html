@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>FLOW_V1_RETRO</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DotGothic16&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{
+  width:100%;height:100%;background:#000;
+  display:flex;justify-content:center;align-items:center;
+  font-family:'DotGothic16',monospace;overflow:hidden;
+}
+#app{
+  width:100%;max-width:480px;height:100dvh;
+  background:#0000AA;border:4px solid #FFF;
+  display:flex;flex-direction:column;position:relative;
+  font-family:'DotGothic16',monospace;image-rendering:pixelated;
+}
+#app::before{
+  content:" ";position:absolute;top:0;left:0;bottom:0;right:0;
+  background:linear-gradient(rgba(18,16,16,0) 50%,rgba(0,0,0,0.08) 50%),
+  linear-gradient(90deg,rgba(255,0,0,0.02),rgba(0,255,0,0.01),rgba(0,0,255,0.02));
+  z-index:100;background-size:100% 3px,3px 100%;pointer-events:none;
+}
+#hud{
+  width:100%;display:grid;grid-template-columns:repeat(2,1fr);
+  padding:8px 10px;border-bottom:3px solid #FFF;background:#0000AA;
+}
+.hcell{padding:2px 4px;}
+.hlbl{font-size:11px;color:#AAA;display:block;margin-bottom:1px;}
+.hval{font-size:11px;color:#FFF;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#canvas-wrap{position:relative;width:100%;background:#000088;}
+#cv{display:block;width:100%;image-rendering:pixelated;}
+#center-info{
+  position:absolute;top:10px;right:10px;text-align:right;
+  opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:50;
+}
+#center-info.show{opacity:1;}
+.info-title{font-size:13px;color:#FFFF00;background:#000;padding:2px 5px;margin-bottom:2px;display:block;}
+.info-coord{font-size:10px;color:#FFF;background:rgba(0,0,0,0.8);padding:2px 5px;display:block;max-width:160px;word-break:keep-all;overflow-wrap:break-word;}
+#input-zone{
+  width:100%;flex-grow:1;display:flex;flex-direction:column;
+  justify-content:center;align-items:center;background:#00AA00;padding:16px 0 12px;
+}
+#sphere{
+  width:80px;height:80px;cursor:pointer;
+  background:#CC2200;border:4px solid #FFF;
+  box-shadow:6px 6px 0px #660000;
+  position:relative;animation:step-float 1s steps(4) infinite;
+  display:flex;align-items:center;justify-content:center;
+  color:#FFF;font-size:14px;font-family:'DotGothic16',monospace;
+  user-select:none;
+}
+@keyframes step-float{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
+#sphere:active{transform:translate(3px,3px);box-shadow:3px 3px 0 #660000;}
+.overlay{
+  position:absolute;inset:0;background:#0000AA;z-index:200;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:30px;text-align:center;color:#FFF;
+}
+.hide{display:none!important;}
+.t1{font-size:28px;margin-bottom:12px;color:#FFFF00;text-shadow:3px 3px #000;}
+.sub-t1{font-size:11px;color:#AAA;margin-bottom:20px;line-height:1.6;}
+.t2{font-size:12px;line-height:1.8;margin-bottom:24px;word-break:keep-all;}
+.sbtn{
+  font-family:'DotGothic16',monospace;padding:12px 28px;background:#FFF;color:#000;
+  border:none;cursor:pointer;font-size:15px;box-shadow:5px 5px 0px #555;
+}
+.sbtn:active{transform:translate(2px,2px);box-shadow:3px 3px 0 #555;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="hud">
+    <div class="hcell"><span class="hlbl">위치</span><span class="hval" id="hc">STBY</span></div>
+    <div class="hcell" style="text-align:right;"><span class="hlbl">진행도</span><span class="hval" id="hsc">00%</span></div>
+  </div>
+  <div id="canvas-wrap">
+    <canvas id="cv" width="480" height="280"></canvas>
+    <div id="center-info">
+      <span class="info-title" id="info-name">-</span>
+      <span class="info-coord" id="info-coord">-</span>
+    </div>
+  </div>
+  <div id="input-zone">
+    <div id="sphere">PUSH</div>
+    <p style="color:#FFF;font-size:10px;margin-top:12px;opacity:0.6;font-family:'DotGothic16',monospace;">[ SPACE / TOUCH ]</p>
+  </div>
+
+  <div id="ov" class="overlay">
+    <canvas id="title-cv" width="480" height="100" style="width:100%;max-width:340px;image-rendering:pixelated;margin-bottom:8px;"></canvas>
+    <div class="sub-t1">2026 HAEIN CHO · V.1.0</div>
+    <div class="t2">
+      시스템: 태평양 해류 데이터<br>
+      --------------------------<br>
+      매일 갱신되는 역사적 사건들.<br>
+      "그" 후쿠시마 원전수는 지금 어디에?
+    </div>
+    <button class="sbtn" id="sbtn">시 작</button>
+  </div>
+
+  <div id="ov-end" class="overlay hide">
+    <canvas id="barrel-cv" width="168" height="216" style="image-rendering:pixelated;width:126px;height:162px;margin-bottom:10px;"></canvas>
+    <div class="t1" style="color:#FF0000;">ENDING</div>
+    <div class="t2" style="text-align:left;font-size:11px;line-height:2;">
+      기록:<br>
+      2023.08.24 방류 시작.<br>
+      2026.04 기준 19차 방류 완료.<br>
+      예상 기간: 30년.<br>
+      --------------------------<br>
+      계속 진행 중...
+    </div>
+    <button class="sbtn" id="reboot-btn">다시하기</button>
+  </div>
+</div>
+
+<script>
+const CURRENTS=[
+  {kr:'쿠로시오해류',coord:'필리핀에서 일본 열도를 따라 북동쪽으로 흐르는 강력한 난류',
+   path:[{x:80,y:140},{x:85,y:100},{x:110,y:70},{x:150,y:50}],steps:10},
+  {kr:'북태평양해류',coord:'일본 동쪽에서 북미 서해안까지 태평양을 가로지르는 거대한 흐름',
+   path:[{x:150,y:50},{x:250,y:40},{x:350,y:50},{x:420,y:70}],steps:15},
+  {kr:'캘리포니아해류',coord:'북미 서해안을 따라 남쪽으로 흐릅니다.',
+   path:[{x:420,y:70},{x:430,y:120},{x:410,y:180}],steps:10},
+  {kr:'북적도해류',coord:'태평양 중부에서 필리핀과 대만 인근까지 동에서 서로 흐르는 해류',
+   path:[{x:410,y:180},{x:300,y:210},{x:150,y:210},{x:100,y:180}],steps:15},
+  {kr:'순환 완료',coord:'쿠로시오 해류 순환을 완료합니다.',
+   path:[{x:100,y:180},{x:80,y:140}],steps:8}
+];
+
+const cv=document.getElementById('cv');
+const ctx=cv.getContext('2d');
+const LW=480,LH=280,PX=4;
+let cIdx=0,currentStep=0,gameActive=false,revealT=0,ripples=[];
+let AC=null,loopRunning=false;
+let smileStart=0,smileActive=false,waveRaf=null;
+
+/* ── 픽셀 스마일 (10×8) ── */
+const SMILE=[
+  [0,0,1,1,1,1,0,0],
+  [0,1,0,0,0,0,1,0],
+  [1,0,1,0,0,1,0,1],
+  [1,0,0,0,0,0,0,1],
+  [1,0,1,0,0,1,0,1],
+  [1,0,0,1,1,0,0,1],
+  [0,1,0,0,0,0,1,0],
+  [0,0,1,1,1,1,0,0],
+];
+
+/* ── 물결선: input-zone 위에 canvas 오버레이 ── */
+function startWave(){
+  const iz=document.getElementById('input-zone');
+  let wc=document.getElementById('wave-cv');
+  if(!wc){
+    wc=document.createElement('canvas');
+    wc.id='wave-cv';
+    wc.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5;image-rendering:pixelated;';
+    iz.style.position='relative';
+    iz.appendChild(wc);
+  }
+  wc.width=iz.offsetWidth||360;
+  wc.height=iz.offsetHeight||160;
+  wc.style.display='block';
+  const wx=wc.getContext('2d');
+  const W=wc.width,H=wc.height;
+  const DOT=4;
+  const COLS=7;
+  let wt=0;
+  function drawW(){
+    wx.clearRect(0,0,W,H);
+    for(let i=0;i<COLS;i++){
+      const baseX=Math.round((W/(COLS+1))*(i+1));
+      for(let dy=0;dy<H;dy+=DOT){
+        const frac=dy/H;
+        const xOff=Math.sin(dy*0.045+wt+i*0.85)*14;
+        const px=Math.round((baseX+xOff)/DOT)*DOT;
+        const g=Math.round(220-frac*80);
+        const alpha=1-frac*0.55;
+        wx.globalAlpha=alpha;
+        wx.fillStyle='rgb('+g+',255,50)';
+        wx.fillRect(px,dy,DOT,DOT);
+      }
+    }
+    wx.globalAlpha=1;
+    wt+=0.04;
+    waveRaf=requestAnimationFrame(drawW);
+  }
+  drawW();
+}
+
+function stopWave(){
+  if(waveRaf){cancelAnimationFrame(waveRaf);waveRaf=null;}
+  const wc=document.getElementById('wave-cv');
+  if(wc) wc.style.display='none';
+}
+
+/* ── 스마일을 지도 canvas 중앙에 그리기 ── */
+function drawSmile(){
+  const SPX=10;
+  const cols=SMILE[0].length, rows=SMILE.length;
+  const ox=Math.floor((LW-cols*SPX)/2);
+  const oy=Math.floor((LH-rows*SPX)/2);
+  const elapsed=(Date.now()-smileStart)/3000;
+  const sc=Math.min(elapsed,1);
+  ctx.save();
+  ctx.translate(LW/2, LH/2);
+  ctx.scale(sc, -sc); /* 거꾸로 + 크기 증가 */
+  ctx.translate(-cols*SPX/2, -rows*SPX/2);
+  ctx.fillStyle='#FFFF00';
+  SMILE.forEach((row,r)=>row.forEach((px,c)=>{
+    if(px) ctx.fillRect(c*SPX, r*SPX, SPX, SPX);
+  }));
+  ctx.restore();
+}
+
+function initAudio(){
+  try{
+    if(!AC) AC=new(window.AudioContext||window.webkitAudioContext)();
+    if(AC.state==='suspended') AC.resume();
+    playOceanSound();
+  }catch(e){console.warn('오디오 초기화 실패',e);}
+}
+
+function playOceanSound(){
+  if(!AC) return;
+  try{
+    const bufferSize=2*AC.sampleRate;
+    const nb=AC.createBuffer(1,bufferSize,AC.sampleRate);
+    const out=nb.getChannelData(0);
+    for(let i=0;i<bufferSize;i++) out[i]=Math.random()*2-1;
+    const noise=AC.createBufferSource();
+    noise.buffer=nb;
+    const filter=AC.createBiquadFilter();
+    filter.type='lowpass';filter.frequency.value=300;
+    const gain=AC.createGain();
+    noise.connect(filter);filter.connect(gain);gain.connect(AC.destination);
+    noise.loop=true;noise.start();
+    function wave(){
+      if(!AC||!gameActive) return;
+      gain.gain.setValueAtTime(0.005,AC.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.015,AC.currentTime+2);
+      gain.gain.exponentialRampToValueAtTime(0.005,AC.currentTime+4);
+      setTimeout(wave,4000);
+    }
+    wave();
+  }catch(e){}
+}
+
+function playStepSound(){
+  if(!AC) return;
+  try{
+    const osc=AC.createOscillator();
+    const g=AC.createGain();
+    osc.type='square';
+    osc.frequency.setValueAtTime(440+(cIdx*50),AC.currentTime);
+    g.gain.setValueAtTime(0.04,AC.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,AC.currentTime+0.1);
+    osc.connect(g);g.connect(AC.destination);
+    osc.start();osc.stop(AC.currentTime+0.1);
+  }catch(e){}
+}
+
+function playEndingSound(){
+  if(!AC) return;
+  try{
+    const t=AC.currentTime;
+    [0,0.06,0.13,0.22,0.33].forEach((delay,i)=>{
+      const osc=AC.createOscillator();
+      const g=AC.createGain();
+      osc.type='sawtooth';
+      const freq=280-i*45;
+      osc.frequency.setValueAtTime(freq,t+delay);
+      osc.frequency.exponentialRampToValueAtTime(freq*0.3,t+delay+0.18);
+      g.gain.setValueAtTime(0.18,t+delay);
+      g.gain.exponentialRampToValueAtTime(0.001,t+delay+0.2);
+      osc.connect(g);g.connect(AC.destination);
+      osc.start(t+delay);osc.stop(t+delay+0.22);
+    });
+    const noise=AC.createBufferSource();
+    const nb=AC.createBuffer(1,AC.sampleRate*0.4,AC.sampleRate);
+    const nd=nb.getChannelData(0);
+    for(let i=0;i<nd.length;i++) nd[i]=Math.random()*2-1;
+    noise.buffer=nb;
+    const nf=AC.createBiquadFilter();
+    nf.type='bandpass';nf.frequency.value=400;nf.Q.value=0.8;
+    const ng=AC.createGain();
+    ng.gain.setValueAtTime(0.12,t);
+    ng.gain.exponentialRampToValueAtTime(0.001,t+0.4);
+    noise.connect(nf);nf.connect(ng);ng.connect(AC.destination);
+    noise.start(t);noise.stop(t+0.4);
+  }catch(e){}
+}
+
+const M=[
+"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX  XXXXXXXXXXXXXXX               XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX  XXXXXXXXXXXXXX                XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     XXXXX                       XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     XXXX                          XXX XXXXXXXXXXXXXX XXXXX     XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+"XXXXXXXXXXXXXXXXXXXXXXXX           XXXXX                             XXXXXXXXXXXXXX XXXXX     XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+"XXXXXXXXXXXXXXXXXXXXXXXXX          XXXXX                                     XXXX               XXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+"XXXXXXXXXXXXXXXXXXXXXXXXX        XXXXXXX                                     XXXX               XXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+"XXXXXXXXXXXXXXXXXXXXXXXXX        XXXXXXX                                    XXX                 XXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+"XXXXXXXXXXXXXXXXXXXXXXXXX        XXXXXXX                                    XX                  XXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+"XXXXXXXXXXXXXXXXXXXXXXXXX        XXXXXXX   X                             XX                     XXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+"XXXXXXXXXXXXXXXX   XXX           XXXXXXX     X                       XX                         XXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+"XXXXXXXXXXXXXXX    XXX           XXXXXXX       XX            X   X                                  XXXXXXXXXXXXXXXXXXXXXXXX",
+"XXXXXXXXXXXXXXX    XX                                XX X                                           XXXXXXXXXXXXXXXXXXXXXXXX",
+"XXXXXXXXXXXXXXX    XX                                                                               XXXXXXXXXXXXXXXXXXXXXXXX",
+"XXXXXXXXXXXXXX     XX                                                                               XXXXXXXXXXXXXXXXXXXXXXXX",
+"XXXXXXXXXXXXXX     X                                                                                  XXXXXXXXXXXXXXXXXXXXXX",
+"XXXXXXXXXXXXXX     X                                                                                  XXXXXXXXXXXXXXXXXXXXXX",
+"XXXXXXXXXXXXX                                                                                           XXXXXXXXXXXXXXXXXXXX",
+"XXXXXXXXXXX          X                                                                                  XXXXXXXXXXXXXXXXXXXX",
+"XXXXXXXXXX           XXX                                                                                XXXXXXXXXXXXXXXXXXXX",
+"XXXXXXXXXX           XXXXXX                                                                                XXXXXXXXXXXXXXXXX",
+"XXXXXXXXXX          XXXXX                                                                                    XXXXXXXXXXXXXXX",
+"XXXXXXXXXXX        X                                                                                         XXXXXXXXXXXXXXX",
+"XXXXXXXXX          XX                                                                                        XXXXXXXXXXXXXXX",
+"XXXXXX             XXX                                                                                       XXXXXXXXXXXXXXX",
+"XXXXXX             XXXX                                                                                      XXXXXXXXXXXXXXX",
+"XXXXXXX           XXXXX                                                                                      XXXXXXXXXXXXXXX",
+"XXXXXXXX          XXX                                                                                        XXXXXXXXXXXXXXX",
+"   XXXXXX         XXX                                                                                        XXXXXXXXXXXXXXX",
+"X  XXXXXX        XXXXXXX                                                                                     XXXXXXXXXXXXXXX",
+"X  XXXXX         XXXXXXX                                                                                     XXXXXXXXXXXXXXX",
+"  XXXXXX       XXXXXXXX                                                                                      XXXXXXXXXXXXXXX",
+"               XXXXXXXX                                                                                      XXXXXXXXXXXXXXX",
+" XX         XXXX                                                                                             XXXXXXXXXXXXXXX",
+"           XXXXXX                                                                                            XXXXXXXXXXXXXXX",
+"         XXXXX                                                                                                  XXXXXXXXXXXX",
+"X                                                                                                               XXXXXXXXXXXX",
+"XX        X                                                                                                     XXXXXXXXXXXX",
+"XX       X                                                                                                      XXXXXXXXXXXX",
+"XX                                                                                                              XXXXXXXXXXXX",
+"XX                                                                                                               XXXXXXXXXXX",
+"XX                                                                                                               XXXXXXXXXXX",
+"XX                                                                                                               XXXXXXXXXXX",
+"XX                                                                                                                          ",
+"X                                                                                                                           ",
+"X                                                                                                                           ",
+"                                                                                                                            ",
+"                                                                                                                            ",
+"                                                                                                                            ",
+"                                                                                                                            ",
+"X                                                                                                                           ",
+"                                                                                                                            ",
+"                                                                                                                            ",
+"                                                                                                                            ",
+"                                                                                                                            ",
+"                                                                                                                            ",
+"                                                                                                                            ",
+"XX                                                                                                                          ",
+"XX                                                                                                                          ",
+"XX                                                                                                                          ",
+" XX                                                                                                                         ",
+" XX                                                                                                                         ",
+"  XX                                                                                                                        ",
+"  XX                                                                                                                        ",
+"                                                                                                                            ",
+"                                                                                                                            ",
+"                                                                                                                            ",
+"                                                                                                                            ",
+""
+];
+
+function drawWorld(){
+  ctx.fillStyle='#000088';
+  ctx.fillRect(0,0,LW,LH);
+  ctx.fillStyle='#00AA00';
+  for(let r=0;r<M.length;r++){
+    let startX=-1;
+    for(let c=0;c<=120;c++){
+      if(c<120 && M[r] && M[r][c]==='X'){
+        if(startX===-1) startX=c;
+      } else {
+        if(startX!==-1){
+          ctx.fillRect(startX*PX,r*PX,(c-startX)*PX,PX);
+          startX=-1;
+        }
+      }
+    }
+  }
+  const blink=Math.floor(Date.now()/300)%2===0;
+  if(blink){
+    ctx.fillStyle='#FF0000';
+    ctx.fillRect(76,116,8,8);
+    const spread=(Date.now()%500)/50;
+    ctx.strokeStyle='#FF0000';
+    ctx.lineWidth=1;
+    ctx.strokeRect(72-spread,112-spread,16+spread*2,16+spread*2);
+  }
+}
+
+function getPos(path,t){
+  const n=path.length-1;
+  const i=Math.min(Math.floor(t*n),n-1);
+  const u=(t*n)-i;
+  return{
+    x:Math.round((path[i].x+(path[i+1].x-path[i].x)*u)/PX)*PX,
+    y:Math.round((path[i].y+(path[i+1].y-path[i].y)*u)/PX)*PX
+  };
+}
+
+function drawFlow(){
+  CURRENTS.forEach((c,idx)=>{
+    if(idx>cIdx) return;
+    const limit=(idx===cIdx)?revealT:1;
+    ctx.fillStyle=(idx===cIdx)?'#FFFF00':'#FFFFFF';
+    for(let t=0;t<=limit;t+=0.02){
+      const p=getPos(c.path,t);
+      ctx.fillRect(p.x,p.y,PX,PX);
+    }
+  });
+  ripples=ripples.filter(r=>r.life>0);
+  ripples.forEach(r=>{
+    const s=20-r.life;
+    ctx.strokeStyle=`rgba(255,255,255,${r.life/20})`;
+    ctx.lineWidth=1;
+    ctx.strokeRect(r.x-s,r.y-s,s*2,s*2);
+    r.life--;
+  });
+}
+
+function advance(){
+  if(!gameActive) return;
+  const cur=CURRENTS[cIdx];
+  currentStep++;
+  revealT=currentStep/cur.steps;
+  const p=getPos(cur.path,revealT);
+  ripples.push({x:p.x,y:p.y,life:20});
+  playStepSound();
+  if(currentStep>=cur.steps){
+    cIdx++;currentStep=0;revealT=0;
+    if(cIdx>=CURRENTS.length){
+      gameActive=false;
+      playEndingSound();
+      smileActive=true;
+      smileStart=Date.now();
+      startWave();
+      setTimeout(function(){
+        smileActive=false;
+        stopWave();
+        document.getElementById('ov-end').classList.remove('hide');
+      },3000);
+    } else {
+      showInfo();
+    }
+  }
+  updateHUD();
+}
+
+function showInfo(){
+  const info=document.getElementById('center-info');
+  document.getElementById('info-name').textContent=CURRENTS[cIdx].kr;
+  document.getElementById('info-coord').textContent=CURRENTS[cIdx].coord;
+  info.classList.add('show');
+  setTimeout(()=>info.classList.remove('show'),1800);
+}
+
+function updateHUD(){
+  document.getElementById('hc').textContent=CURRENTS[cIdx]?CURRENTS[cIdx].kr:'DONE';
+  const total=CURRENTS.reduce((a,b)=>a+b.steps,0);
+  const curr=CURRENTS.slice(0,cIdx).reduce((a,b)=>a+b.steps,0)+currentStep;
+  document.getElementById('hsc').textContent=String(Math.floor(curr/total*100)).padStart(2,'0')+'%';
+}
+
+function loop(){
+  drawWorld();
+  drawFlow();
+  if(smileActive) drawSmile();
+  requestAnimationFrame(loop);
+}
+
+document.getElementById('sbtn').addEventListener('click',function(){
+  initAudio();
+  document.getElementById('ov').classList.add('hide');
+  gameActive=true;
+  showInfo();updateHUD();
+  if(!loopRunning){loopRunning=true;loop();}
+});
+
+document.getElementById('reboot-btn').addEventListener('click',function(){
+  cIdx=0;currentStep=0;revealT=0;ripples=[];gameActive=false;
+  smileActive=false;stopWave();
+  document.getElementById('ov-end').classList.add('hide');
+  document.getElementById('ov').classList.remove('hide');
+});
+
+document.addEventListener('keydown',function(e){
+  if(e.code==='Space'){e.preventDefault();advance();}
+});
+
+document.getElementById('sphere').addEventListener('click',advance);
+
+(function(){
+  const tc=document.getElementById('title-cv');
+  const tx=tc.getContext('2d');
+  const DOT=8;
+  const LETTERS={
+    F:[[1,1,1,1,1],[1,1,0,0,0],[1,1,1,1,0],[1,1,0,0,0],[1,1,0,0,0],[1,1,0,0,0],[1,1,0,0,0]],
+    L:[[1,1,0,0,0],[1,1,0,0,0],[1,1,0,0,0],[1,1,0,0,0],[1,1,0,0,0],[1,1,0,0,0],[1,1,1,1,1]],
+    O:[[0,1,1,1,0],[1,1,0,1,1],[1,1,0,1,1],[1,1,0,1,1],[1,1,0,1,1],[1,1,0,1,1],[0,1,1,1,0]],
+    W:[[1,1,0,0,0,1,1],[1,1,0,0,0,1,1],[1,1,0,0,0,1,1],[1,1,0,1,0,1,1],[1,1,1,1,1,1,1],[0,1,1,0,1,1,0],[0,0,1,0,1,0,0]]
+  };
+  const WORD=['F','L','O','W'];
+  const GAP=2,ROWS=7,CW=480,CH=100;
+  function totalWidth(){let w=0;WORD.forEach((ch,i)=>{w+=LETTERS[ch][0].length;if(i<WORD.length-1)w+=GAP;});return w;}
+  const TW=totalWidth();
+  const startX=Math.floor((CW/DOT-TW)/2);
+  const startY=Math.floor((CH/DOT-ROWS)/2);
+  const dots=[];
+  let ox=startX;
+  WORD.forEach(ch=>{
+    const grid=LETTERS[ch];
+    for(let r=0;r<ROWS;r++) for(let c=0;c<grid[r].length;c++) if(grid[r][c]) dots.push({gx:ox+c,gy:startY+r,row:r});
+    ox+=LETTERS[ch][0].length+GAP;
+  });
+  let tt=0;
+  function titleLoop(){
+    tx.fillStyle='#0000AA';tx.fillRect(0,0,CW,CH);
+    dots.forEach(d=>{
+      const wave=Math.sin(tt*2+d.gx*0.5)*2;
+      const py=d.gy+wave;
+      const frac=d.row/(ROWS-1);
+      const g=Math.round(220-frac*80);
+      const alpha=1-frac*0.5;
+      tx.globalAlpha=alpha;
+      tx.fillStyle='rgb('+g+',255,50)';
+      tx.fillRect(Math.round(d.gx*DOT),Math.round(py*DOT),DOT,DOT);
+    });
+    tx.globalAlpha=1;tt+=0.04;
+    requestAnimationFrame(titleLoop);
+  }
+  titleLoop();
+})();
+
+/* ── 방사능 통 도트 아트 ── */
+(function(){
+  const bc=document.getElementById('barrel-cv');
+  const bx=bc.getContext('2d');
+  const DOT=4;
+  const PALETTE={
+    'K':'#1A1E21',
+    'D':'#4D555B',
+    'C':'#9AB3C7',
+    'Y':'#F5CF0C',
+    'y':'#B89010',
+  };
+  const MAP=[
+    "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+    "CCCCCCCCCCCCCCCCCDDDDDDDDDDDDDDDDDCCCCCCCCCCCCCCCC",
+    "CCCCCCCCCCCCKKKKKKDDDDKKKKKKDDDDDKKKKCCCCCCCCCCCCC",
+    "CCCCCCCCCCDDKKKKKDDDDKKKKKKDDDDDKKKKKKKDDDCCCCCCCC",
+    "CCCCCCCDDKKKKKKKKDDDKKKKKKKDDDDDKKKKKDDDDKKCCCCCCC",
+    "CCCCCCDDDKKKKKKKDDDDKKKKKKDDDDDKKKKKDDDDKKKCCCCCCC",
+    "CCCCCDDDDKKKKKKDDDDKKKKKKDDDDDKKKKKKDDDDKKKKKCCCCC",
+    "CCCCCDDDKKKKKKDDDDKKKKKKDDDDDKKKKKKDDDDKKKKDDCCCCC",
+    "CCCCDDDDKKKKKDDDDKKKKKKKDDDDDKKKKKKDDDDKKKKDDDDCCC",
+    "CCCCKDDKKKKKKDDDDKKKKKKDDDDDKKKKKKDDDDKKKKDDDDDCCC",
+    "CCCCKDKKKKKKDDDDKKKKKKDDDDDKKKKKKDDDDKKKKKDDDDDCCC",
+    "CCCCKKKKKKKDDDDKKKKKKDDDDDKKKKKKKDDDDKKKKDDDDKDCCC",
+    "CCCCKKKKKKDDDDKKKKKKKDDDDDKKKKKKDDDDKKKKKDDDDKKCCC",
+    "CCCCKKKKKDDDDDKKKKKKDDDDDKKKKKKDDDDDKKKKKDDDKKKCCC",
+    "CCCCKKKKKDDDDKKKKKKDDDDDKKKKKKKDDDDKKKKKDDDDKKDCCC",
+    "CCCCKKKKDDDDKKKKKKDDDDDKKKKKKKDDDDDKKKKKDDDKKKDCCC",
+    "CCCCKKKDDDDKKKKKKKDDDDDKKKKKKKDDDDKKKKKDDDDKKKDCCC",
+    "CCCCKKKDDDDKKKKKKDDDDDKKKKKKKDDDDKKKKKKDDDDKKKDCCC",
+    "CCCCDCKKDDKKKKKKDDDDDKKKKKKKDDDDDKKKKKKDDDKKKCDCCC",
+    "CCCCDCKKKKKKKKKKDDDDKKKKKKKKDDDDKKKKKKKKKKCCCCDCCC",
+    "CCCCDCCCKKKKKKKKDDDDKKKKKKKDDDDDKKKKKKKKKCCCCCDCCC",
+    "CCCCDCCCCCCCKKKKKDDKKKKKKKKDDDDKKKKKKCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCCKKKKKKKKKKKKKKKKKKKKCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCCCCCYYYYYYYYYYYYYCCCCCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCCCYYYYYYYYYYYYYYYYYCCCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCCCYYYYYYYYYYYYYYYYYCCCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCCYYYYYYYYYYYYYYYYYYYCCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCYYYYYKKKYYYYYKKYYYYYYCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCYYYYYKKKKYYYYYKKKKYYYYCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCYYYYKKKKKYYYYYKKKKKYYYYCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCYYYYYKKKKKYYYYYKKKKKYYYYCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCYYYYKKKKKKYYYYYKKKKKKYYYCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCYYYKKKKKKKYYYYKKKKKKKDYYYCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCYYYKKKKKKYYKKYYKKKKKKDYYYCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCYYYYYKKKYYDKKDYYYYYYYYYYYCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCYYYYYYYYYYDKKDYYYYYYYYYYYCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCYYYYYYYYYYYKKYYYYYYYYYYYYCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCYYYYYYYYYYYYYYYYYYYYYYYYCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCYYYYYYYYYYYKKYYYYYYYYYYYCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCYYYYYYYYYYKKKYYYYYYYYYYCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCYYYYYYYYYKKKKKYYYYYYYYCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCYYYYYYYYKKKKKYYYYYYYYCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCYYYYYYYKKKKKKDYYYYYCCCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCCCYYYYYKKKKKKDYYYYCCCCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCCCCYYYYYYYYYYYYYYCCCCCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCCCCCCCYYYYYYYYYCCCCCCCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCDCCC",
+    "CCCCDCCCCCCCCCCCDDDDDDDDDDDDDDDDDDDDDCCCCCCCCCDCCC",
+    "CCCCDCCCCCDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDCCCDCCC",
+    "CCCCDCCCDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDCCDCCC",
+    "CCCCDCDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDCDCCC",
+    "CCCCDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDCCC",
+    "CCCCDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDCCCC",
+    "CCCCDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDCCCC",
+    "CCCCCDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDCCCCCC",
+    "CCCCCCCDDCDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDCCCCCCCC",
+    "CCCCCCCCCCCCCDDDDDDDDDDDDDDDDDDDDDDDDCCCCCCCCCCCCC",
+    "CCCCCCCCCCCCCCDCDDDDDDDDDDDDDDDDDDDDCCCCCCCCCCCCCC",
+    "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+    "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+    "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+    "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+  ];
+  const COLS=MAP[0].length, ROWS=MAP.length;
+  bc.width=COLS*DOT; bc.height=ROWS*DOT;
+  bc.style.width=(COLS*DOT*0.65)+'px';
+  bc.style.height=(ROWS*DOT*0.65)+'px';
+  bc.style.marginBottom='8px';
+  bx.clearRect(0,0,bc.width,bc.height);
+  MAP.forEach((row,r)=>{
+    for(let c=0;c<row.length;c++){
+      const col=PALETTE[row[c]];
+      if(!col) continue;
+      bx.fillStyle=col;
+      bx.fillRect(c*DOT,r*DOT,DOT,DOT);
+    }
+  });
+})();
+</script>
+</body>
+</html>
