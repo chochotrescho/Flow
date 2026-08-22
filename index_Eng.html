@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>FLOW_V1_RETRO</title>
+<title>FLOW_V2_RETRO_Eng</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DotGothic16&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -74,8 +74,8 @@ body{
 <body>
 <div id="app">
   <div id="hud">
-    <div class="hcell"><span class="hlbl">위치</span><span class="hval" id="hc">STBY</span></div>
-    <div class="hcell" style="text-align:right;"><span class="hlbl">진행도</span><span class="hval" id="hsc">00%</span></div>
+    <div class="hcell"><span class="hlbl">LOCATION</span><span class="hval" id="hc">STBY</span></div>
+    <div class="hcell" style="text-align:right;"><span class="hlbl">PROGRESS</span><span class="hval" id="hsc">00%</span></div>
   </div>
   <div id="canvas-wrap">
     <canvas id="cv" width="480" height="280"></canvas>
@@ -91,42 +91,42 @@ body{
 
   <div id="ov" class="overlay">
     <canvas id="title-cv" width="480" height="100" style="width:100%;max-width:340px;image-rendering:pixelated;margin-bottom:8px;"></canvas>
-    <div class="sub-t1">2026 HAEIN CHO · V.1.0</div>
+    <div class="sub-t1">2026 HAEIN CHO · V.2.0</div>
     <div class="t2">
-      시스템: 태평양 해류 데이터<br>
+      SYSTEM: PACIFIC OCEAN CURRENT DATA<br>
       --------------------------<br>
-      매일 갱신되는 역사적 사건들.<br>
-      "그" 후쿠시마 원전수는 지금 어디에?
+      Historical events, updated daily.<br>
+      Where is "that" Fukushima nuclear wastewater now?
     </div>
-    <button class="sbtn" id="sbtn">시 작</button>
+    <button class="sbtn" id="sbtn">START</button>
   </div>
 
   <div id="ov-end" class="overlay hide">
     <canvas id="barrel-cv" width="168" height="216" style="image-rendering:pixelated;width:126px;height:162px;margin-bottom:10px;"></canvas>
     <div class="t1" style="color:#FF0000;">ENDING</div>
     <div class="t2" style="text-align:left;font-size:11px;line-height:2;">
-      기록:<br>
-      2023.08.24 방류 시작.<br>
-      2026.04 기준 19차 방류 완료.<br>
-      예상 기간: 30년.<br>
+      RECORD:<br>
+      Discharge began: 08.24.2023.<br>
+      22nd discharge: 07.30–08.17.2026.<br>
+      Estimated duration: 30 years.<br>
       --------------------------<br>
-      계속 진행 중...
+      Still ongoing...
     </div>
-    <button class="sbtn" id="reboot-btn">다시하기</button>
+    <button class="sbtn" id="reboot-btn">REPLAY</button>
   </div>
 </div>
 
 <script>
 const CURRENTS=[
-  {kr:'쿠로시오해류',coord:'필리핀에서 일본 열도를 따라 북동쪽으로 흐르는 강력한 난류',
+  {en:'Kuroshio Current',coord:'A powerful warm current flowing northeast from the Philippines along the Japanese archipelago.',
    path:[{x:80,y:140},{x:85,y:100},{x:110,y:70},{x:150,y:50}],steps:10},
-  {kr:'북태평양해류',coord:'일본 동쪽에서 북미 서해안까지 태평양을 가로지르는 거대한 흐름',
+  {en:'North Pacific Current',coord:'A vast current flowing across the Pacific from east of Japan to the west coast of North America.',
    path:[{x:150,y:50},{x:250,y:40},{x:350,y:50},{x:420,y:70}],steps:15},
-  {kr:'캘리포니아해류',coord:'북미 서해안을 따라 남쪽으로 흐릅니다.',
+  {en:'California Current',coord:'A current flowing southward along the west coast of North America.',
    path:[{x:420,y:70},{x:430,y:120},{x:410,y:180}],steps:10},
-  {kr:'북적도해류',coord:'태평양 중부에서 필리핀과 대만 인근까지 동에서 서로 흐르는 해류',
+  {en:'North Equatorial Current',coord:'A current flowing from east to west across the central Pacific toward the Philippines and Taiwan.',
    path:[{x:410,y:180},{x:300,y:210},{x:150,y:210},{x:100,y:180}],steps:15},
-  {kr:'순환 완료',coord:'쿠로시오 해류 순환을 완료합니다.',
+  {en:'Loop Complete',coord:'The Kuroshio Current circulation is complete.',
    path:[{x:100,y:180},{x:80,y:140}],steps:8}
 ];
 
@@ -453,14 +453,14 @@ function advance(){
 
 function showInfo(){
   const info=document.getElementById('center-info');
-  document.getElementById('info-name').textContent=CURRENTS[cIdx].kr;
+  document.getElementById('info-name').textContent=CURRENTS[cIdx].en;
   document.getElementById('info-coord').textContent=CURRENTS[cIdx].coord;
   info.classList.add('show');
   setTimeout(()=>info.classList.remove('show'),1800);
 }
 
 function updateHUD(){
-  document.getElementById('hc').textContent=CURRENTS[cIdx]?CURRENTS[cIdx].kr:'DONE';
+  document.getElementById('hc').textContent=CURRENTS[cIdx]?CURRENTS[cIdx].en:'DONE';
   const total=CURRENTS.reduce((a,b)=>a+b.steps,0);
   const curr=CURRENTS.slice(0,cIdx).reduce((a,b)=>a+b.steps,0)+currentStep;
   document.getElementById('hsc').textContent=String(Math.floor(curr/total*100)).padStart(2,'0')+'%';
